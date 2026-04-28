@@ -1,26 +1,101 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-paper: #f5f1e8;
+  --color-paper-shade: #ede6d6;
+  --color-paper-deep: #e3dac4;
+  --color-rule: #d4c9b0;
+  --color-rule-soft: #e0d6bd;
+
+  --color-ink: #1a1f2e;
+  --color-ink-soft: #4a4e5c;
+  --color-ink-faint: #8a8478;
+  --color-ink-whisper: #b8ad97;
+
+  --color-fountain: #2d3e5c;
+  --color-fountain-deep: #1a2740;
+  --color-fountain-light: #6b7a96;
+
+  --color-marginalia: #6b4423;
+  --color-marginalia-soft: #9a7a55;
+
+  --color-stamp: #7a2e2e;
+  --color-stamp-soft: #a85555;
+
+  --color-sage: #6f8b5a;
+  --color-amber-warn: #c18a3b;
+
+  --font-serif: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: var(--font-jetbrains), "Courier New", monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-paper);
+  background-image: radial-gradient(
+    circle,
+    var(--color-rule) 0.5px,
+    transparent 0.5px
+  );
+  background-size: 24px 24px;
+  background-position: 0 0;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+}
+
+::selection {
+  background-color: var(--color-ink);
+  color: var(--color-paper);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-rule);
+  border-radius: 0;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-whisper);
+}
+
+.serif-italic {
+  font-family: var(--font-serif);
+  font-style: italic;
+}
+
+.section-break {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: var(--color-marginalia);
+  opacity: 0.6;
+}
+.section-break::before,
+.section-break::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-rule);
+}
+
+
+.specimen-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border: 0.5px solid currentColor;
 }
