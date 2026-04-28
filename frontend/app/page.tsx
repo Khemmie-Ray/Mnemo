@@ -1,9 +1,19 @@
-import React from 'react'
+import Header from "@/components/home/Header";
+import Hero from "@/components/home/Hero";
+import HIW from "@/components/home/HIW";
+import { WhyZeroG } from "@/components/home/WhyZeroG";
+import Footer from "@/components/home/Footer";
 
-const page = () => {
+const Home = () => {
   return (
-    <div>page</div>
-  )
+    <main className="">
+      <Header />
+      <Hero />
+      <HIW />
+      <WhyZeroG />
+      <Footer />
+    </main>
+  );
 }
 
-export default page
+export default Home
