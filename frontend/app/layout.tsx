@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import ContextProvider from "@/context";
+import { headers } from "next/headers";
+import { Toaster } from "sonner";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -27,15 +30,23 @@ export const metadata: Metadata = {
     "User-owned memory and policy storage for AI agents. Built on 0G. Portable across every app you use.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const headersObj = await headers();
+  const cookies = headersObj.get("cookie");
+
   return (
     <html
       lang="en"
       className={`${fraunces.variable} ${inter.variable} ${jetbrains.variable}`}
     >
-      <body className="max-w-[1550px] w-full mx-auto">{children}</body>
+      <body className="max-w-387.5 w-full mx-auto">
+        <ContextProvider cookies={cookies}>
+          <Toaster richColors />
+          {children}
+        </ContextProvider>
+      </body>
     </html>
   );
 }
