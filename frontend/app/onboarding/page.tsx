@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppKit, useAppKitAccount } from "@reown/appkit/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useRegisterAgent } from "@/hooks/useRegister";
+import { useAgentStatus } from "@/hooks/useAgentStatus";
 
 const steps = [
   {
@@ -29,35 +31,47 @@ const steps = [
 ];
 
 export default function OnboardingPage() {
-  const [active, setActive] = useState(0);
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { open } = useAppKit();
   const { address, isConnected } = useAppKitAccount();
+  const {
+    isRegistered,
+    isLoading: isCheckingAgent,
+    queryKey,
+  } = useAgentStatus();
   const { register, phase, error, rootHash } = useRegisterAgent();
 
-  // Auto-advance from step 0 once wallet connects
+  const [active, setActive] = useState(0);
+
+  // Drive `active` from real state instead of local-only logic
   useEffect(() => {
-    if (isConnected && address && active === 0) {
+    if (!isConnected || !address) {
+      setActive(0);
+      return;
+    }
+    if (isCheckingAgent) return; // wait for the read to settle
+    if (isRegistered) {
+      setActive(2);
+      return;
+    }
+    if (active === 0) {
       setActive(1);
     }
-  }, [isConnected, address, active]);
+  }, [isConnected, address, isRegistered, isCheckingAgent, active]);
 
-  // If user disconnects mid-flow, drop them back to step 0
-  useEffect(() => {
-    if (!isConnected && active > 0) {
-      setActive(0);
-    }
-  }, [isConnected, active]);
-
-  // Auto-advance from step 1 once registration confirms
+  // After successful registration: invalidate cache, advance, toast
   useEffect(() => {
     if (phase === "done" && active === 1) {
       toast.success("Agent registered on 0G");
+      if (queryKey) {
+        queryClient.invalidateQueries({ queryKey });
+      }
       setActive(2);
     }
-  }, [phase, active]);
+  }, [phase, active, queryKey, queryClient]);
 
-  // Surface errors via toast
+  // Surface registration errors via toast
   useEffect(() => {
     if (phase === "error" && error) {
       toast.error(error);
@@ -87,7 +101,6 @@ export default function OnboardingPage() {
             <span className="text-[14px] font-medium bg-sage/10 text-sage px-4 py-2.5 border border-sage/30">
               Wallet connected ✓
             </span>
-            <w3m-button balance="hide" size="sm" />
           </div>
         );
       }
@@ -100,9 +113,7 @@ export default function OnboardingPage() {
 
     if (stepIndex === 1) {
       const busy =
-        phase === "uploading" ||
-        phase === "signing" ||
-        phase === "confirming";
+        phase === "uploading" || phase === "signing" || phase === "confirming";
 
       const label =
         phase === "uploading"
@@ -127,6 +138,7 @@ export default function OnboardingPage() {
     );
   };
 
+
   return (
     <main className="min-h-screen flex flex-col">
       <nav className="max-w-6xl mx-auto px-6 md:px-10 pt-8 w-full flex items-center justify-between">
@@ -137,7 +149,9 @@ export default function OnboardingPage() {
           Mnemo
         </Link>
         <span className="font-mono text-xs text-ink-faint">
-          new vault — step {active + 1} of {steps.length}
+          {isRegistered
+            ? "vault present"
+            : `new vault — step ${active + 1} of ${steps.length}`}
         </span>
       </nav>
 
@@ -145,11 +159,13 @@ export default function OnboardingPage() {
         <div className="max-w-2xl w-full">
           <div className="font-serif italic text-sm text-marginalia mb-4 flex items-center gap-3">
             <span className="block w-8 h-px bg-marginalia opacity-40" />
-            establishing your memory vault
+            {isRegistered
+              ? "your vault is already established"
+              : "establishing your memory vault"}
           </div>
 
           <h1 className="font-serif text-4xl md:text-5xl leading-[1.1] text-ink mb-12">
-            A first-time ritual.
+            {isRegistered ? "Welcome back." : "A first-time ritual."}
           </h1>
 
           <ol className="space-y-2 mb-12">
@@ -200,7 +216,8 @@ export default function OnboardingPage() {
                       <div className="ml-9">{renderStepButton(i)}</div>
                       {i === 1 && rootHash && (
                         <div className="ml-9 mt-3 font-mono text-[10px] text-ink-faint break-all">
-                          manifest stored at: {rootHash.slice(0, 14)}…{rootHash.slice(-10)}
+                          manifest stored at: {rootHash.slice(0, 14)}…
+                          {rootHash.slice(-10)}
                         </div>
                       )}
                     </>
@@ -210,19 +227,21 @@ export default function OnboardingPage() {
             })}
           </ol>
 
-          <div className="border-t border-dashed border-rule pt-6">
-            <p className="font-serif italic text-sm text-ink-faint leading-relaxed max-w-md">
-              The transaction in step ii will request a small amount of 0G gas.
-              If you need testnet funds, the faucet is{" "}
-              <Link
-                href="https://faucet.0g.ai"
-                className="text-fountain border-b border-fountain"
-              >
-                here
-              </Link>
-              .
-            </p>
-          </div>
+          {!isRegistered && (
+            <div className="border-t border-dashed border-rule pt-6">
+              <p className="font-serif italic text-sm text-ink-faint leading-relaxed max-w-md">
+                The transaction in step ii will request a small amount of 0G
+                gas. If you need testnet funds, the faucet is{" "}
+                <Link
+                  href="https://faucet.0g.ai"
+                  className="text-fountain border-b border-fountain"
+                >
+                  here
+                </Link>
+                .
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </main>
