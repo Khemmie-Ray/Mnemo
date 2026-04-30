@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppKit, useAppKitAccount } from "@reown/appkit/react";
-import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { toast } from "sonner";
+import { useRegisterAgent } from "@/hooks/useRegister";
 
 const steps = [
   {
@@ -33,51 +33,43 @@ export default function OnboardingPage() {
   const router = useRouter();
   const { open } = useAppKit();
   const { address, isConnected } = useAppKitAccount();
+  const { register, phase, error, rootHash } = useRegisterAgent();
 
-  const {
-    writeContractAsync,
-    data: txHash,
-    isPending: isRegistering,
-    reset: resetWrite,
-  } = useWriteContract();
-
-  const { isLoading: isConfirming, isSuccess: isRegistered } =
-    useWaitForTransactionReceipt({ hash: txHash });
-
+  // Auto-advance from step 0 once wallet connects
   useEffect(() => {
     if (isConnected && address && active === 0) {
       setActive(1);
     }
   }, [isConnected, address, active]);
 
+  // If user disconnects mid-flow, drop them back to step 0
   useEffect(() => {
-    if (isRegistered && active === 1) {
+    if (!isConnected && active > 0) {
+      setActive(0);
+    }
+  }, [isConnected, active]);
+
+  // Auto-advance from step 1 once registration confirms
+  useEffect(() => {
+    if (phase === "done" && active === 1) {
       toast.success("Agent registered on 0G");
       setActive(2);
     }
-  }, [isRegistered, active]);
+  }, [phase, active]);
+
+  // Surface errors via toast
+  useEffect(() => {
+    if (phase === "error" && error) {
+      toast.error(error);
+    }
+  }, [phase, error]);
 
   const handleConnect = async () => {
     await open();
   };
 
   const handleRegister = async () => {
-    try {
-      const placeholderManifestHash = "ipfs-placeholder-hash";
-
-      await writeContractAsync({
-        address: "0x0000000000000000000000000000000000000000",
-        abi: [],
-        functionName: "registerAgent",
-        args: [placeholderManifestHash],
-      });
-    } catch (err) {
-      console.error(err);
-      const message =
-        err instanceof Error ? err.message : "Registration failed";
-      toast.error(message);
-      resetWrite();
-    }
+    await register();
   };
 
   const handleOpenDashboard = () => {
@@ -85,35 +77,52 @@ export default function OnboardingPage() {
   };
 
   const renderStepButton = (stepIndex: number) => {
-    const label = steps[stepIndex].cta;
     const baseClass =
       "text-[14px] font-medium bg-ink text-paper px-5 py-2.5 border border-ink/10 hover:bg-paper hover:text-ink transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
 
     if (stepIndex === 0) {
+      if (isConnected) {
+        return (
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-[14px] font-medium bg-sage/10 text-sage px-4 py-2.5 border border-sage/30">
+              Wallet connected ✓
+            </span>
+            <w3m-button balance="hide" size="sm" />
+          </div>
+        );
+      }
       return (
         <button onClick={handleConnect} className={baseClass}>
-          {isConnected ? "Wallet connected ✓" : label}
+          {steps[0].cta}
         </button>
       );
     }
 
     if (stepIndex === 1) {
-      const busy = isRegistering || isConfirming;
-      const buttonLabel = isRegistering
-        ? "Confirm in wallet…"
-        : isConfirming
-          ? "Registering on 0G…"
-          : label;
+      const busy =
+        phase === "uploading" ||
+        phase === "signing" ||
+        phase === "confirming";
+
+      const label =
+        phase === "uploading"
+          ? "Uploading manifest to 0G…"
+          : phase === "signing"
+            ? "Confirm in wallet…"
+            : phase === "confirming"
+              ? "Registering on 0G…"
+              : steps[1].cta;
+
       return (
         <button onClick={handleRegister} disabled={busy} className={baseClass}>
-          {buttonLabel}
+          {label}
         </button>
       );
     }
 
     return (
       <button onClick={handleOpenDashboard} className={baseClass}>
-        {label}
+        {steps[2].cta}
       </button>
     );
   };
@@ -189,6 +198,11 @@ export default function OnboardingPage() {
                         {step.body}
                       </p>
                       <div className="ml-9">{renderStepButton(i)}</div>
+                      {i === 1 && rootHash && (
+                        <div className="ml-9 mt-3 font-mono text-[10px] text-ink-faint break-all">
+                          manifest stored at: {rootHash.slice(0, 14)}…{rootHash.slice(-10)}
+                        </div>
+                      )}
                     </>
                   )}
                 </li>
