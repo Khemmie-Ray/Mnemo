@@ -9,10 +9,12 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@0gfoundation/0g-ts-sdk": "^1.2.6",
     "@reown/appkit": "^1.8.17",
     "@reown/appkit-adapter-wagmi": "^1.8.17",
     "@tanstack/react-query": "^5.90.20",
     "accounts": "^0.8.5",
+    "ethers": "^6.13.1",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
