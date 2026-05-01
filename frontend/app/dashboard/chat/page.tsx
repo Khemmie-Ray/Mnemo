@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useChat, type Message } from "@/hooks/useChat";
 import { useSaveMemory } from "@/hooks/useSaveMemory";
+import { usePaymentExecution, type ReasoningStep,} from "@/hooks/usePaymentExecution";
+import Link from "next/link";
 
 export default function ChatPage() {
   const { messages, isThinking, error, sendMessage, markProposalResolved } =
@@ -14,6 +16,59 @@ export default function ChatPage() {
     error: saveError,
     reset: resetSave,
   } = useSaveMemory();
+
+  const {
+    execute: executePayment,
+    finalizeIfConfirmed,
+    phase: paymentPhase,
+    steps: reasoningSteps,
+    error: paymentError,
+    txHash: paymentTxHash,
+    reset: resetPayment,
+  } = usePaymentExecution();
+
+const [pendingPaymentMessageId, setPendingPaymentMessageId] = useState<string | null>(null);
+
+  // Auto-finalize when transaction confirms
+  useEffect(() => {
+    const pendingMsg = messages.find((m) => m.id === pendingPaymentMessageId);
+    if (pendingMsg?.proposedAction) {
+      finalizeIfConfirmed(pendingMsg.proposedAction);
+    }
+  }, [paymentPhase, pendingPaymentMessageId, messages, finalizeIfConfirmed]);
+
+  // Surface payment success
+  useEffect(() => {
+    if (paymentPhase === "done" && pendingPaymentMessageId) {
+      toast.success("Payment sent and logged to your vault");
+      markProposalResolved(pendingPaymentMessageId);
+      setPendingPaymentMessageId(null);
+      resetPayment();
+    }
+  }, [
+    paymentPhase,
+    pendingPaymentMessageId,
+    markProposalResolved,
+    resetPayment,
+  ]);
+
+  // Surface payment errors
+  useEffect(() => {
+    if (paymentPhase === "error" && paymentError) {
+      toast.error(paymentError);
+    }
+  }, [paymentPhase, paymentError]);
+
+  const handleExecutePayment = async (msg: Message) => {
+    if (!msg.proposedAction) return;
+    setPendingPaymentMessageId(msg.id);
+    await executePayment(msg.proposedAction);
+  };
+
+  const handleDiscardPayment = (msg: Message) => {
+    markProposalResolved(msg.id);
+    toast("Discarded");
+  };
 
   const [draft, setDraft] = useState("");
   const [pendingSaveId, setPendingSaveId] = useState<string | null>(null);
@@ -146,6 +201,17 @@ export default function ChatPage() {
                   onDiscard={() => handleDiscardProposal(msg)}
                   isSaving={pendingSaveId === msg.id}
                   savePhase={savePhase}
+                />
+              )}
+              {msg.proposedAction && !msg.proposalResolved && (
+                <PaymentCard
+                  msg={msg}
+                  onExecute={() => handleExecutePayment(msg)}
+                  onDiscard={() => handleDiscardPayment(msg)}
+                  isExecuting={pendingPaymentMessageId === msg.id}
+                  phase={paymentPhase}
+                  steps={reasoningSteps}
+                  txHash={paymentTxHash}
                 />
               )}
 
@@ -287,6 +353,120 @@ function ProposalCard({
           className="text-[13px] font-medium bg-transparent text-ink-soft px-4 py-2 border border-rule hover:border-ink hover:text-ink transition-colors disabled:opacity-40"
         >
           discard
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PaymentCard({
+  msg,
+  onExecute,
+  onDiscard,
+  isExecuting,
+  phase,
+  steps,
+  txHash,
+}: {
+  msg: Message;
+  onExecute: () => void;
+  onDiscard: () => void;
+  isExecuting: boolean;
+  phase: string;
+  steps: ReasoningStep[];
+  txHash: string | null;
+}) {
+  if (!msg.proposedAction) return null;
+
+  const a = msg.proposedAction;
+
+  const buttonLabel = (() => {
+    if (!isExecuting) return "send payment";
+    if (phase === "reasoning") return "thinking…";
+    if (phase === "awaiting_signature") return "confirm in wallet…";
+    if (phase === "broadcasting") return "broadcasting…";
+    if (phase === "confirming") return "confirming…";
+    if (phase === "logging") return "logging to vault…";
+    return "sending…";
+  })();
+
+  return (
+    <div className="mt-4 p-4 bg-paper-shade border border-rule">
+      <div className="flex items-center justify-between mb-3">
+        <span className="specimen-badge text-fountain">propose payment</span>
+        <span className="font-mono text-[10px] text-ink-faint">
+          should I send this?
+        </span>
+      </div>
+
+      <div className="mb-4">
+        <div className="font-serif text-base text-ink">
+          {a.amount} {a.token} → {a.recipientName}
+        </div>
+        <div className="font-mono text-[11px] text-ink-faint mt-1 break-all">
+          {a.to}
+        </div>
+        <div className="font-serif italic text-sm text-ink-soft mt-1">
+          on {a.chain}
+        </div>
+      </div>
+
+      {/* Reasoning trace — only visible when executing */}
+      {isExecuting && steps.length > 0 && (
+        <div className="mb-4 border-l-2 border-marginalia pl-4 py-2 space-y-1.5">
+          {steps.map((step) => (
+            <div
+              key={step.id}
+              className={`font-serif italic text-sm transition-opacity ${
+                step.state === "pending"
+                  ? "text-ink-faint opacity-40"
+                  : step.state === "active"
+                    ? "text-marginalia"
+                    : "text-sage"
+              }`}
+            >
+              <span className="font-mono text-xs mr-2">
+                {step.state === "done"
+                  ? "✓"
+                  : step.state === "active"
+                    ? "·"
+                    : " "}
+              </span>
+              {step.label}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Tx hash link once we have one */}
+      {txHash && (phase === "confirming" || phase === "logging" || phase === "done") && (
+        <div className="mb-4 font-mono text-[10px] text-ink-faint">
+          tx:{" "}
+          <Link
+            href={`https://chainscan-galileo.0g.ai/tx/${txHash}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-fountain hover:text-fountain-deep border-b border-fountain"
+          >
+            {txHash.slice(0, 10)}…{txHash.slice(-8)}
+          </Link>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onExecute}
+          disabled={isExecuting}
+          className="text-[13px] font-medium bg-ink text-paper px-4 py-2 hover:bg-paper hover:text-ink border border-ink transition-colors disabled:opacity-40"
+        >
+          {buttonLabel}
+        </button>
+        <button
+          onClick={onDiscard}
+          disabled={isExecuting}
+          className="text-[13px] font-medium bg-transparent text-ink-soft px-4 py-2 border border-rule hover:border-ink hover:text-ink transition-colors disabled:opacity-40"
+        >
+          cancel
         </button>
       </div>
     </div>

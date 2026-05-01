@@ -19,7 +19,6 @@ export default function DashboardPage() {
   const preferenceCount = data?.preferences.length ?? 0;
   const paymentLogCount = data?.paymentLog.length ?? 0;
 
-  // Show the most recent 6 memories on the dashboard
   const recentMemories = (data?.allChunks ?? []).slice(0, 6);
 
   const stats = [
@@ -53,7 +52,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Stat strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-6 mb-16 pb-12 border-b border-dashed border-rule">
         {stats.map((stat) => (
           <div key={stat.label}>
@@ -67,7 +65,6 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Quick actions */}
       <section className="mb-16">
         <h2 className="font-serif italic text-base text-marginalia mb-6">
           — what would you like to do?
@@ -130,7 +127,6 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* Recent memories */}
       <section>
         <div className="flex items-baseline justify-between mb-6">
           <h2 className="font-serif italic text-base text-marginalia">
@@ -171,7 +167,7 @@ export default function DashboardPage() {
         )}
 
         {!isLoading && recentMemories.length > 0 && (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="flex justify-between flex-col lg:flex-row md:flex-row flex-wrap">
             {recentMemories.map((m) => {
               const cardProps = (() => {
                 if (m.type === "saved_recipient") {
@@ -192,7 +188,7 @@ export default function DashboardPage() {
                     body: m.body,
                   };
                 }
-                // payment_log
+           
                 return {
                   type: "payment log",
                   typeColor: "sage" as const,
@@ -226,7 +222,6 @@ export default function DashboardPage() {
   );
 }
 
-// Simple relative time formatter
 function timeAgo(unixSeconds: number): string {
   const now = Math.floor(Date.now() / 1000);
   const diff = now - unixSeconds;
