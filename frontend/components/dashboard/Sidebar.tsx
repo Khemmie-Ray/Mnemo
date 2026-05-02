@@ -9,6 +9,7 @@ const navItems = [
   { label: "Vault", href: "/dashboard", section: "i." },
   { label: "Chat", href: "/dashboard/chat", section: "ii." },
   { label: "Policies", href: "/dashboard/policies", section: "iii." },
+  { label: "Access", href: "/dashboard/access", section: "iv." },
 ]
 ;
 
