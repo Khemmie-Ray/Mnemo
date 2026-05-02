@@ -36,10 +36,11 @@ export default function DashboardPage() {
 
       <div className="flex items-baseline justify-between mb-12 pb-6 border-b border-rule">
         <h1 className="font-serif text-4xl md:text-5xl text-ink">
-          Welcome back{data?.manifest?.name ? `, ${data.manifest.name}` : ""}.
+          {/* Welcome back{data?.manifest?.name ? `, ${data.manifest.name}` : ""}. */}
+          Welcome back!
         </h1>
         <span className="font-serif italic text-sm text-marginalia hidden md:block">
-          {isLoading ? "consulting your vault…" : "your vault is current"}
+          {isLoading ? "consulting your vault…" : "vault is current"}
         </span>
       </div>
 

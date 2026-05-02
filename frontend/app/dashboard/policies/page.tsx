@@ -1,118 +1,58 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { useVault } from "@/hooks/useVault";
 
-type Category = "recipients" | "rules" | "preferences";
+type Category = "recipients" | "preferences" | "payments";
 
-const categories: { id: Category; label: string; count: number; section: string }[] = [
-  { id: "recipients", label: "Saved recipients", count: 4, section: "i." },
-  { id: "rules", label: "Payment rules", count: 3, section: "ii." },
-  { id: "preferences", label: "Preferences", count: 6, section: "iii." },
-];
-
-const recipients = [
-  {
-    name: "Mom",
-    note: "Lagos, Nigeria",
-    chains: ["Celo", "Ethereum"],
-    preferred: "USDC on Celo",
-    address: "0x9f2c7a3b4e1d8c0f5a6b...e4d1",
-    extra: "Prefers MiniPay receipts. Round to nearest 10 when sending.",
-  },
-  {
-    name: "Landlord — Mr. Adeyemi",
-    note: "Monthly rent",
-    chains: ["Bank transfer"],
-    preferred: "NGN bank transfer",
-    address: "GTBank · 0123456789",
-    extra: "Due 1st of each month. Late fee after the 5th.",
-  },
-  {
-    name: "Tobi",
-    note: "Brother",
-    chains: ["Base"],
-    preferred: "USDC on Base",
-    address: "0x4af2901c3d8e5b...19db",
-    extra: "Splitting bills — usually $20–80 range.",
-  },
-  {
-    name: "Workers' co-op",
-    note: "Quarterly dues",
-    chains: ["Celo"],
-    preferred: "cUSD on Celo",
-    address: "0x8c7e3a91...b240",
-    extra: "₦15,000 equivalent every quarter.",
-  },
-];
-
-const rules = [
-  {
-    name: "Monthly subscription cap",
-    body: "Soft warn at $80, hard stop at $120 across all recurring services.",
-    triggers: "Subscription category",
-  },
-  {
-    name: "No transactions past 11pm",
-    body: "Anything outside business hours requires explicit confirmation, no exceptions.",
-    triggers: "Time-based",
-  },
-  {
-    name: "Approval required over $200",
-    body: "For any single transaction above this amount, ask before executing.",
-    triggers: "Amount threshold",
-  },
-];
-
-const preferences = [
-  {
-    name: "Concise responses",
-    body: "Skip preamble. Answer the question first, expand only if asked.",
-  },
-  {
-    name: "Working hours",
-    body: "Schedule meetings between 10:00 and 16:00 WAT, no Fridays.",
-  },
-  {
-    name: "Documentation style",
-    body: "Conversational and accessible. Avoid jargon when explaining to newcomers.",
-  },
-  {
-    name: "Default chain preference",
-    body: "Prefer Celo for personal transfers, Base for development work.",
-  },
-  {
-    name: "Receipts",
-    body: "Always send a receipt confirmation after any payment over $20.",
-  },
-  {
-    name: "Language",
-    body: "Default to English, but understand Yoruba phrases when used.",
-  },
+const categories: {
+  id: Category;
+  label: string;
+  section: string;
+}[] = [
+  { id: "recipients", label: "Saved recipients", section: "i." },
+  { id: "preferences", label: "Preferences", section: "ii." },
+  { id: "payments", label: "Payment log", section: "iii." },
 ];
 
 export default function PoliciesPage() {
   const [active, setActive] = useState<Category>("recipients");
+  const { data, isLoading, error } = useVault();
+
+  const counts = {
+    recipients: data?.recipients.length ?? 0,
+    preferences: data?.preferences.length ?? 0,
+    payments: data?.paymentLog.length ?? 0,
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-8 md:px-12 py-12">
-      <header className="pb-6 border-b border-[var(--color-rule)] mb-10">
-        <div className="font-mono text-xs text-[var(--color-ink-faint)] uppercase tracking-[0.15em] mb-2">
-          appendix · policies & rules
+      <header className="pb-6 border-b border-rule mb-10">
+        <div className="font-mono text-xs text-ink-faint uppercase tracking-[0.15em] mb-2">
+          appendix · policies & memory
         </div>
-        <div className="flex items-baseline justify-between">
-          <h1 className="font-serif text-4xl md:text-5xl text-[var(--color-ink)]">
-            Things your agent should know.
-          </h1>
-          <button className="stamp-button outline text-xs hidden md:inline-flex">
-            + add new
-          </button>
-        </div>
+        <h1 className="font-serif text-4xl md:text-5xl text-ink">
+          Things your agent knows.
+        </h1>
+        <p className="font-serif italic text-sm text-marginalia mt-2">
+          everything here lives on 0g — owned by your wallet, encrypted later.
+        </p>
       </header>
 
-      <div className="grid grid-cols-[260px_1fr] gap-12">
+      {error && (
+        <div className="mb-8 p-4 border border-stamp/40 bg-stamp/5">
+          <div className="font-mono text-xs text-stamp uppercase tracking-widest mb-1">
+            vault load error
+          </div>
+          <p className="text-sm text-ink-soft">{error}</p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-12">
         {/* Index — left column */}
         <aside>
-          <div className="font-mono text-[10px] text-[var(--color-ink-faint)] uppercase tracking-[0.12em] mb-4">
+          <div className="font-mono text-[10px] text-ink-faint uppercase tracking-[0.12em] mb-4">
             Index
           </div>
           <ul className="space-y-1">
@@ -124,15 +64,13 @@ export default function PoliciesPage() {
                     onClick={() => setActive(cat.id)}
                     className={`w-full text-left flex items-baseline gap-3 px-3 py-2 transition-colors ${
                       isActive
-                        ? "bg-[var(--color-paper-shade)] text-[var(--color-ink)]"
-                        : "text-[var(--color-ink-soft)] hover:bg-[var(--color-paper-shade)] hover:text-[var(--color-ink)]"
+                        ? "bg-paper-shade text-ink"
+                        : "text-ink-soft hover:bg-paper-shade hover:text-ink"
                     }`}
                   >
                     <span
                       className={`font-serif italic text-sm ${
-                        isActive
-                          ? "text-[var(--color-marginalia)]"
-                          : "text-[var(--color-ink-faint)]"
+                        isActive ? "text-marginalia" : "text-ink-faint"
                       }`}
                     >
                       {cat.section}
@@ -140,8 +78,8 @@ export default function PoliciesPage() {
                     <span className="font-serif text-base flex-1">
                       {cat.label}
                     </span>
-                    <span className="font-mono text-[10px] text-[var(--color-ink-faint)]">
-                      {cat.count}
+                    <span className="font-mono text-[10px] text-ink-faint">
+                      {counts[cat.id]}
                     </span>
                   </button>
                 </li>
@@ -149,144 +87,190 @@ export default function PoliciesPage() {
             })}
           </ul>
 
-          <div className="mt-10 pt-6 border-t border-dashed border-[var(--color-rule)]">
-            <div className="font-serif italic text-xs text-[var(--color-ink-faint)] leading-relaxed">
-              Each policy is encrypted with your wallet's keys before being
-              stored on 0G. Only you can read them.
+          <div className="mt-10 pt-6 border-t border-dashed border-rule">
+            <div className="font-serif italic text-xs text-ink-faint leading-relaxed mb-4">
+              Memories are added through chat. Tell your agent something to remember and confirm the proposal.
             </div>
+            <Link
+              href="/dashboard/chat"
+              className="font-mono text-xs text-fountain border-b border-fountain pb-0.5 hover:text-fountain-deep"
+            >
+              open chat →
+            </Link>
           </div>
         </aside>
 
         {/* Detail — right column */}
         <section>
-          {active === "recipients" && (
-            <div className="space-y-1">
-              <h2 className="font-serif italic text-base text-[var(--color-marginalia)] mb-6">
-                — saved recipients
-              </h2>
-              {recipients.map((r, i) => (
-                <article
-                  key={r.name}
-                  className={`grid grid-cols-[180px_1fr_auto] gap-6 py-6 ${
-                    i !== recipients.length - 1
-                      ? "border-b border-dashed border-[var(--color-rule)]"
-                      : ""
-                  }`}
-                >
-                  <div>
-                    <div className="font-serif text-lg text-[var(--color-ink)]">
-                      {r.name}
-                    </div>
-                    <div className="font-serif italic text-sm text-[var(--color-ink-faint)] mt-1">
-                      {r.note}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {r.chains.map((c) => (
-                        <span
-                          key={c}
-                          className="font-mono text-[10px] text-[var(--color-marginalia)] border border-[var(--color-marginalia)] px-2 py-0.5"
-                        >
-                          {c}
-                        </span>
-                      ))}
-                      <span className="font-serif italic text-sm text-[var(--color-fountain)] ml-1">
-                        — prefers {r.preferred}
-                      </span>
-                    </div>
-                    <code className="font-mono text-xs text-[var(--color-ink-faint)] block">
-                      {r.address}
-                    </code>
-                    <p className="text-sm text-[var(--color-ink-soft)] leading-relaxed">
-                      {r.extra}
-                    </p>
-                  </div>
-                  <div className="flex flex-col gap-2 text-right">
-                    <button className="font-mono text-[10px] text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] uppercase tracking-[0.1em]">
-                      edit
-                    </button>
-                    <button className="font-mono text-[10px] text-[var(--color-stamp)] hover:opacity-70 uppercase tracking-[0.1em]">
-                      remove
-                    </button>
-                  </div>
-                </article>
-              ))}
+          {isLoading && (
+            <div className="font-serif italic text-sm text-ink-faint py-12">
+              consulting your vault…
             </div>
           )}
 
-          {active === "rules" && (
-            <div className="space-y-1">
-              <h2 className="font-serif italic text-base text-[var(--color-marginalia)] mb-6">
-                — payment rules
-              </h2>
-              {rules.map((r, i) => (
-                <article
-                  key={r.name}
-                  className={`grid grid-cols-[180px_1fr_auto] gap-6 py-6 ${
-                    i !== rules.length - 1
-                      ? "border-b border-dashed border-[var(--color-rule)]"
-                      : ""
-                  }`}
-                >
-                  <div>
-                    <div className="font-serif text-lg text-[var(--color-ink)]">
-                      {r.name}
-                    </div>
-                    <div className="font-mono text-[10px] text-[var(--color-ink-faint)] uppercase tracking-[0.1em] mt-1">
-                      {r.triggers}
-                    </div>
-                  </div>
-                  <p className="text-sm text-[var(--color-ink-soft)] leading-relaxed">
-                    {r.body}
-                  </p>
-                  <div className="flex flex-col gap-2 text-right">
-                    <button className="font-mono text-[10px] text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] uppercase tracking-[0.1em]">
-                      edit
-                    </button>
-                    <button className="font-mono text-[10px] text-[var(--color-stamp)] hover:opacity-70 uppercase tracking-[0.1em]">
-                      remove
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
+          {!isLoading && active === "recipients" && (
+            <RecipientsList recipients={data?.recipients ?? []} />
           )}
 
-          {active === "preferences" && (
-            <div className="space-y-1">
-              <h2 className="font-serif italic text-base text-[var(--color-marginalia)] mb-6">
-                — preferences
-              </h2>
-              {preferences.map((p, i) => (
-                <article
-                  key={p.name}
-                  className={`grid grid-cols-[180px_1fr_auto] gap-6 py-6 ${
-                    i !== preferences.length - 1
-                      ? "border-b border-dashed border-[var(--color-rule)]"
-                      : ""
-                  }`}
-                >
-                  <div className="font-serif text-lg text-[var(--color-ink)]">
-                    {p.name}
-                  </div>
-                  <p className="text-sm text-[var(--color-ink-soft)] leading-relaxed">
-                    {p.body}
-                  </p>
-                  <div className="flex flex-col gap-2 text-right">
-                    <button className="font-mono text-[10px] text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] uppercase tracking-[0.1em]">
-                      edit
-                    </button>
-                    <button className="font-mono text-[10px] text-[var(--color-stamp)] hover:opacity-70 uppercase tracking-[0.1em]">
-                      remove
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
+          {!isLoading && active === "preferences" && (
+            <PreferencesList preferences={data?.preferences ?? []} />
+          )}
+
+          {!isLoading && active === "payments" && (
+            <PaymentsList payments={data?.paymentLog ?? []} />
           )}
         </section>
       </div>
+    </div>
+  );
+}
+
+function EmptyState({ message, link }: { message: string; link?: string }) {
+  return (
+    <div className="border border-dashed border-rule py-16 px-8 text-center">
+      <h3 className="font-serif text-xl text-ink-soft mb-3">Nothing here yet.</h3>
+      <p className="font-serif italic text-sm text-ink-faint mb-6 max-w-md mx-auto">
+        {message}
+      </p>
+      {link && (
+        <Link
+          href={link}
+          className="text-[14px] font-medium bg-ink text-paper px-5 py-2.5 inline-block hover:bg-paper hover:text-ink border border-ink transition-colors"
+        >
+          Open chat →
+        </Link>
+      )}
+    </div>
+  );
+}
+
+function RecipientsList({ recipients }: { recipients: any[] }) {
+  if (recipients.length === 0) {
+    return (
+      <EmptyState
+        message="Save people you pay regularly. Tell your agent something like 'save my mom's address as 0x... on Celo, prefers USDC'."
+        link="/dashboard/chat"
+      />
+    );
+  }
+  return (
+    <div className="space-y-1">
+      <h2 className="font-serif italic text-base text-marginalia mb-6">
+        — saved recipients
+      </h2>
+      {recipients.map((r, i) => (
+        <article
+          key={r.id}
+          className={`grid grid-cols-1 md:grid-cols-[180px_1fr] gap-6 py-6 ${
+            i !== recipients.length - 1
+              ? "border-b border-dashed border-rule"
+              : ""
+          }`}
+        >
+          <div>
+            <div className="font-serif text-lg text-ink">{r.name}</div>
+            {r.notes && (
+              <div className="font-serif italic text-sm text-ink-faint mt-1">
+                {r.notes}
+              </div>
+            )}
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-mono text-[10px] text-marginalia border border-marginalia px-2 py-0.5">
+                {r.chain}
+              </span>
+              <span className="font-serif italic text-sm text-fountain">
+                — prefers {r.preferredToken}
+              </span>
+            </div>
+            <code className="font-mono text-xs text-ink-faint block break-all">
+              {r.address}
+            </code>
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function PreferencesList({ preferences }: { preferences: any[] }) {
+  if (preferences.length === 0) {
+    return (
+      <EmptyState
+        message="Tell your agent how you want to be treated. 'Remember that I prefer concise responses' or 'Remember my monthly subscription cap is $80'."
+        link="/dashboard/chat"
+      />
+    );
+  }
+  return (
+    <div className="space-y-1">
+      <h2 className="font-serif italic text-base text-marginalia mb-6">
+        — preferences
+      </h2>
+      {preferences.map((p, i) => (
+        <article
+          key={p.id}
+          className={`grid grid-cols-1 md:grid-cols-[180px_1fr] gap-6 py-6 ${
+            i !== preferences.length - 1
+              ? "border-b border-dashed border-rule"
+              : ""
+          }`}
+        >
+          <div className="font-serif text-lg text-ink">{p.title}</div>
+          <p className="text-sm text-ink-soft leading-relaxed">{p.body}</p>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function PaymentsList({ payments }: { payments: any[] }) {
+  if (payments.length === 0) {
+    return (
+      <EmptyState
+        message="Payment history will appear here once you send through chat."
+        link="/dashboard/chat"
+      />
+    );
+  }
+  return (
+    <div className="space-y-1">
+      <h2 className="font-serif italic text-base text-marginalia mb-6">
+        — payment log
+      </h2>
+      {payments.map((p, i) => (
+        <article
+          key={p.id}
+          className={`grid grid-cols-1 md:grid-cols-[180px_1fr] gap-6 py-6 ${
+            i !== payments.length - 1
+              ? "border-b border-dashed border-rule"
+              : ""
+          }`}
+        >
+          <div>
+            <div className="font-serif text-lg text-ink">
+              {p.amount} {p.token}
+            </div>
+            <div className="font-serif italic text-sm text-ink-faint mt-1">
+              to {p.recipientName}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div className="font-serif italic text-sm text-ink-soft">
+              on {p.chain}
+            </div>
+            <a
+              href={`https://chainscan-galileo.0g.ai/tx/${p.txHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono text-xs text-fountain hover:text-fountain-deep border-b border-fountain pb-0.5 break-all inline-block"
+            >
+              {p.txHash}
+            </a>
+          </div>
+        </article>
+      ))}
     </div>
   );
 }
