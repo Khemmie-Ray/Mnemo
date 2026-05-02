@@ -15,8 +15,8 @@ if (!projectId) {
 const metadata = {
   name: 'Mnemo',
   description: 'A memory layer for AI agents. User-owned, portable across every app you use.',
-  url: 'https://mnemo.app', 
-  icons: ['https://mnemo.app/favicon.svg'], 
+  url: 'https://mnemo-chi.vercel.app/', 
+  icons: ['/favicon.ico'], 
 }
 
 createAppKit({
