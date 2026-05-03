@@ -50,7 +50,6 @@ export default function PoliciesPage() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-12">
-        {/* Index — left column */}
         <aside>
           <div className="font-mono text-[10px] text-ink-faint uppercase tracking-[0.12em] mb-4">
             Index
@@ -99,8 +98,6 @@ export default function PoliciesPage() {
             </Link>
           </div>
         </aside>
-
-        {/* Detail — right column */}
         <section>
           {isLoading && (
             <div className="font-serif italic text-sm text-ink-faint py-12">
