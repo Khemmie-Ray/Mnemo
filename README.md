@@ -60,6 +60,12 @@ Events are emitted on each update so external tools can track vault changes with
 * OpenAI GPT-4o-mini for intent interpretation
 * Foundry for smart contract development
 
+## Links
+
+-- [Livelink](https://mnemo-chi.vercel.app/)
+-- [Pitchdeck](https://canva.link/gfpsqmibss2o8jn)
+
+
 ## Run locally
 
 ```bash
